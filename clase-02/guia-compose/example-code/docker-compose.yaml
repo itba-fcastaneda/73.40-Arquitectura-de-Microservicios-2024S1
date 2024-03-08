@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+    prometheus:
+        image: prom/prometheus:v2.46.0    
+        container_name: backend_prom
+        ports:
+        - 9090:9090
+        restart: unless-stopped
+        volumes:
+        - prom_data:/prometheus
+        - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+        networks:
+        - dummy
+        - dmz
+    
+    dummy_app:
+        image: isagues/dummy_exporter:1.0
+        container_name: backend_dummy
+        networks:
+        - dummy
+
+networks:
+    dummy:
+        name: backend_network_dummy
+        internal: true
+    dmz:
+        name: backend_network_dmz
+
+volumes:
+  prom_data:
