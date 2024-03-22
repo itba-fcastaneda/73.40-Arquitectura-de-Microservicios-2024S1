@@ -1,0 +1,127 @@
+version: '3.6'
+
+# https://raw.githubusercontent.com/tchiotludo/akhq/master/docker-compose.yml
+
+volumes:
+  zookeeper-data:
+    driver: local
+  zookeeper-log:
+    driver: local
+  kafka-data:
+    driver: local
+
+services:
+  akhq:
+    image: tchiotludo/akhq
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+
+    ports:
+      - 8080:8080
+    links:
+      - kafka
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data:Z
+      - zookeeper-log:/var/lib/zookeeper/log:Z
+    environment:
+      ZOOKEEPER_CLIENT_PORT: '2181'
+      ZOOKEEPER_ADMIN_ENABLE_SERVER: 'false'
+
+  kafka:
+    image: confluentinc/cp-kafka
+    volumes:
+      - kafka-data:/var/lib/kafka/data:Z
+    environment:
+      KAFKA_BROKER_ID: '0'
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_NUM_PARTITIONS: '12'
+      KAFKA_COMPRESSION_TYPE: 'gzip'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_JMX_PORT: '9091'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_AUTHORIZER_CLASS_NAME: 'kafka.security.authorizer.AclAuthorizer'
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'true'
+    links:
+      - zookeeper
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+
+  api:
+    container_name: async_api
+    build: 
+      context: .
+      args:
+        - APP_FILE_PATH=./api.py
+    depends_on:
+      - kafka
+    ports: 
+      - 8000:8000
+
+  llm1:
+    container_name: async_llm1
+    build: 
+      context: .
+      args:
+        - APP_FILE_PATH=./llm.py
+    depends_on:
+      - kafka
+    environment:
+      - instanceID=1
+
+  llm2:
+    container_name: async_llm2
+    build: 
+      context: .
+      args:
+        - APP_FILE_PATH=./llm.py
+    depends_on:
+      - kafka
+    environment:
+      - instanceID=2
+
+  llm3:
+    container_name: async_llm3
+    build: 
+      context: .
+      args:
+        - APP_FILE_PATH=./llm.py
+    depends_on:
+      - kafka
+    environment:
+      - instanceID=3
+
+  sessions:
+    container_name: async_sessions
+    build: 
+      context: .
+      args:
+        - APP_FILE_PATH=./subscriber.py
+    depends_on:
+      - kafka
+    environment:
+      - APP_NAME=SESSIONS
+
+  analytics:
+    container_name: async_analytics
+    build: 
+      context: .
+      args:
+        - APP_FILE_PATH=./subscriber.py
+    depends_on:
+      - kafka
+    environment:
+      - APP_NAME=ANALYTICS

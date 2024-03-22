@@ -4,3 +4,4 @@ Este es el repositorio de la materia Arquitectura de Microservicios (ITBA) 2024 
 
 - [Clase 01 - Introducción a Docker](./clase-01)
 - [Clase 02 - Creación de imágenes via Dockerfile](./clase-02)
+- [Clase 04 - Comunicación entre Servicios](./clase-04)
