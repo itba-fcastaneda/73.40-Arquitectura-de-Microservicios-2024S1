@@ -1,0 +1,23 @@
+# Terraform .terraform directories
+**/.terraform/*
+
+# VSCode specific files
+.vscode/*
+
+# Ignore any .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Ignore .tfvars files that are required to be manually processed
+!example.tfvars
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
