@@ -33,7 +33,7 @@ Cuando termine, nos va a imprimir los comandos de ssh al master node y a los wor
 Si queremos obtener los comandos ssh otra vez, corremos `terraform output`.
 
 ## Forma 2: A manopla
-La otra manera es levantarlo desde la consola de AWS. Hay un video en el campus para levantar 3 instancias con los requisitos necesarios.
+La otra manera es levantarlo desde la consola de AWS. Este video muestra como levantar 3 nodos y accederlos por ssh: [enlace](https://youtu.be/muAhodvzTn0).
 
 # Configuración
 Lo primero que vamos a hacer va a ser configurar el nodo **master**. Entonces, entramos por ssh al nodo.
