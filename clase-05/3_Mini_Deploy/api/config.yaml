@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  labels:
+    app: api
+data:
+  DB_URL: jdbc:postgresql://postgres-db-service:5432/postgres
+  LOGLEVEL: debug
