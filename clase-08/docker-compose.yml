@@ -1,0 +1,47 @@
+services:
+  api:
+    image: ${API_IMAGE}
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: ${FLASK_ENV} 
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:5000/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - app
+      - test_api
+      - all
+  
+  db:
+    build: testing-app/db
+    environment:
+      MYSQL_ROOT_PASSWORD: testing
+      MYSQL_DATABASE: development
+      MYSQL_USER: testing
+      MYSQL_PASSWORD: testing
+    profiles:
+      - app
+      - all
+
+  db_test:
+    build: testing-app/db
+    environment:
+      MYSQL_ROOT_PASSWORD: testing
+      MYSQL_DATABASE: testing 
+      MYSQL_USER: testing
+      MYSQL_PASSWORD: testing
+    profiles:
+      - test_db
+      - all
+
+  test_runner:
+    image: ${API_IMAGE}
+    environment:
+      FLASK_ENV: testing 
+    command: sh -c "python3 test/bdd/test_bdd.py && python3 test/contract/test_contract.py && python3 -m unittest discover test/unit/ && python3 test/integration/test_integration.py"
+    profiles:
+      - test
+      - all
