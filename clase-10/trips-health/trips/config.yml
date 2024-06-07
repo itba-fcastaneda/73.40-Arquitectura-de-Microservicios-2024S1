@@ -1,0 +1,36 @@
+AMQP_URI: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@${RABBIT_HOST}:${RABBIT_PORT}/
+REDIS_URIS:
+  development: redis://${REDIS_HOST}:${REDIS_PORT}/1
+
+LOGGING:
+  version: 1
+  formatters:
+    tracer:
+      (): nameko_tracer.formatters.JSONFormatter
+    simple:
+      format: "%(message)s"
+  handlers:
+    tracer:
+      class: logging.StreamHandler
+      formatter: tracer
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+  loggers:
+    nameko_tracer:
+      level: INFO
+      handlers: [tracer]
+  root:
+    level: DEBUG
+    handlers: [console]
+
+STRUCTLOG:
+  INCLUDE_WORKER_NAME: ${INCLUDE_WORKER_NAME:true}
+  INCLUDE_LOG_TRANSACTON_ID: true
+  PROCESSOR_NAME: JSONRenderer
+  PROCESSOR_OPTIONS:
+    sort_keys: true
+  EXTRA_PARAMETERS:
+      pin: 1234
+      env: dev
+  

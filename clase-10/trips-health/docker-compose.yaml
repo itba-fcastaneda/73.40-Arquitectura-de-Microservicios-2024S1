@@ -1,0 +1,123 @@
+version: "3.8"
+
+services:
+  airports:
+    container_name: trips_airports
+    build:
+      context: ./airports
+    networks:
+      - airports
+      - mq
+    env_file:
+      - airports.env
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://172.31.50.84:12201"
+        labels: airports, test
+
+    depends_on:
+      redis-airports:
+        condition: service_healthy
+      mq:
+        condition: service_healthy
+  
+  trips:
+    container_name: trips_trips
+    build:
+      context: ./trips
+    networks:
+      - trips
+      - mq
+    env_file:
+      - trips.env
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://172.31.50.84:12201"
+        labels: trips, test
+    depends_on:
+      redis-trips:
+        condition: service_healthy
+      mq:
+        condition: service_healthy
+  
+  gateway:
+    container_name: trips_gateway
+    build:
+      context: ./gateway
+    networks:
+      - mq
+      - default
+    env_file:
+      - gateway.env
+    environment:
+        AIRPORTS_HEALTH_CHECK: http://airports:8000/health
+        TRIPS_HEALTH_CHECK: http://trips:8000/health
+    ports:
+      - 8000:8000
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://172.31.50.84:12201"
+        labels: gateway, test
+    depends_on:
+      mq:
+        condition: service_healthy
+
+  redis-airports:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - airports
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  redis-trips:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - trips
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+  
+  mq:
+    image: rabbitmq:3-management
+    networks:
+      - mq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+
+  healthcheck:
+    build:
+      context: healthcheck
+    networks:
+        mq: # No es la mejor opcion
+        default:
+        prometheus:
+          aliases:
+            - "trips_healthcheck"
+    volumes:
+      - ./healthcheck/config.example.yaml:/app/config.yaml:z 
+    restart: always
+
+     
+    
+networks:
+  airports:
+    driver: bridge
+    internal: true
+  trips:
+    driver: bridge
+    internal: true
+  mq:
+    driver: bridge
+    internal: true
+  prometheus:
+    name: trips_prom
+    driver: bridge
+    internal: true
+    

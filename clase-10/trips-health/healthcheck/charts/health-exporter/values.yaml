@@ -1,0 +1,40 @@
+# Default values for health-exporter.
+image:
+  repository: "ghcr.io/snapp-incubator/health-exporter"
+  # defaults to chart appVersion
+  tag: ""
+replicas: 1
+resources:
+  limits:
+    memory: "100Mi"
+    cpu: "1"
+  requests:
+    memory: "100Mi"
+    cpu: "1"
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+config:
+  listen: ':9876'
+  targets:
+    http: []
+      # - name: 'sample'
+      #   url: 'http://google.com'
+      #   rps: 0.5
+      #   timeout: '5s'
+      # - name: 'google-tls'
+      #   url: 'https://google.com'
+      #   rps: 0.5
+      #   timeout: '5s'
+      #   tls_skip_verify: true
+    dns: []
+      # - name: 'google'
+      #   domain: 'google.com'
+      #   record_type: 'A'
+      #   rps: 0.5
+      #   timeout: '2s'

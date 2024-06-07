@@ -1,0 +1,2 @@
+nameko==2.14.1
+nameko_redis==1.1.0

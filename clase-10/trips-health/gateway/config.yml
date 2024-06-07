@@ -1,0 +1,14 @@
+AMQP_URI: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@${RABBIT_HOST}:${RABBIT_PORT}/
+LOGGING:
+  version: 1
+  formatters:
+    tracer:
+      (): nameko_tracer.formatters.JSONFormatter
+  handlers:
+    tracer:
+      class: logging.StreamHandler
+      formatter: tracer
+  loggers:
+    nameko_tracer:
+      level: INFO
+      handlers: [tracer]

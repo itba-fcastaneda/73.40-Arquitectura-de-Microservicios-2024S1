@@ -1,0 +1,4 @@
+nameko
+nameko-redis
+nameko-tracer
+nameko-structlog
