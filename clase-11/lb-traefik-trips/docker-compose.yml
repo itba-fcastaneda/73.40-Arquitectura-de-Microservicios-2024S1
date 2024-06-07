@@ -1,0 +1,102 @@
+version: "3"
+services:
+
+  redis1:
+    image: redis:4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis1
+    volumes:
+      - redis-data:/data
+    networks:
+      internal-net: 
+
+  rabbit:
+    image: rabbitmq:3-management
+    ports:
+        - "15672:15672"
+    networks:
+      internal-net: 
+
+  airports:
+    labels:
+      - "traefik.http.routers.airports.rule=Host(`airports.localhost`)"
+      - "traefik.http.services.airports.loadbalancer.server.port=8000"   
+    build:
+      context: airports
+    depends_on:
+      - rabbit
+    environment:
+        REDIS_HOST: "redis"
+        REDIS_PORT: "6379"
+        RABBIT_PASSWORD: "guest"
+        RABBIT_USER: "guest"
+        RABBIT_HOST: "rabbit"
+        RABBIT_PORT: "5672"
+    networks:
+      internal-net: 
+
+  trips:
+    labels:
+      - "traefik.http.routers.trips.rule=Host(`trips.localhost`)"
+      - "traefik.http.services.trips.loadbalancer.server.port=8000"    
+    build:
+      context: trips
+    depends_on:
+      - rabbit
+    environment:
+        REDIS_HOST: "redis"
+        REDIS_PORT: "6379"
+        RABBIT_PASSWORD: "guest"
+        RABBIT_USER: "guest"
+        RABBIT_HOST: "rabbit"
+        RABBIT_PORT: "5672"
+    networks:
+      internal-net: 
+
+  gateway:
+    labels: 
+        - "traefik.http.routers.gateway.rule=Host(`gateway.localhost`)"
+        - "traefik.http.services.gateway.loadbalancer.server.port=8000"
+    build:
+      context: gateway
+    depends_on:
+      - rabbit
+    environment:
+        RABBIT_PASSWORD: "guest"
+        RABBIT_USER: "guest"
+        RABBIT_HOST: "rabbit"
+        RABBIT_PORT: "5672"
+        AIRPORTS_HEALTH_CHECK: http://airports:8000/health
+        TRIPS_HEALTH_CHECK: http://trips:8000/health
+    networks:
+      internal-net: 
+
+  reverse-proxy:
+    # The official v2 Traefik docker image
+    image: traefik:v2.10
+    # Enables the web UI and tells Traefik to listen to docker
+    command: --api.insecure=true --providers.docker
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      internal-net: 
+      default: 
+
+volumes:
+  redis-data:
+
+
+networks:
+  internal-net: 
+    internal: true
+  redis-net:
+    internal: true
+    ipam:
+      config:
+      - subnet: 10.245.1.0/24
