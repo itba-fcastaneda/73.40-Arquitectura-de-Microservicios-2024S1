@@ -9,3 +9,4 @@ Este es el repositorio de la materia Arquitectura de Microservicios (ITBA) 2024 
 - [Clase 08 - CI/CD](./clase-08)
 - [Clase 10 - Observabilidad](./clase-10)
 - [Clase 11 - API Gateway](./clase-11)
+- [Clase 12 - Serverless](./clase-12)
