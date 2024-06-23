@@ -1,0 +1,155 @@
+image: docker:latest
+
+variables:
+  IMAGE_BASE: "$CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+  DOCKER_BUILDKIT: 1
+
+stages:
+  - prep
+  - build
+  - test
+  - deliver
+  - deploy
+
+preparation:
+  stage: prep
+  tags:
+    - dev
+  script:
+    - export BUILD_ID=$(date +%Y%m%d%H%M)
+    - echo "BUILD_ID=${BUILD_ID}" > context.env
+
+    - echo "API_PROD_IMAGE_NAME=${IMAGE_BASE}/api:prod-${BUILD_ID}"       >> context.env
+    - echo "API_TEST_IMAGE_NAME=${IMAGE_BASE}/api:test-${BUILD_ID}"       >> context.env
+    - echo "CLIENT_PROD_IMAGE_NAME=${IMAGE_BASE}/client:prod-${BUILD_ID}" >> context.env
+    - echo "CLIENT_TEST_IMAGE_NAME=${IMAGE_BASE}/client:test-${BUILD_ID}" >> context.env
+
+    - echo "DOCKER_HUB_API_IMAGE=$DOCKER_HUB_USER/foodtruckers-api:${BUILD_ID}"         >> context.env
+    - echo "DOCKER_HUB_CLIENT_IMAGE=$DOCKER_HUB_USER/foodtruckers-client:${BUILD_ID}"   >> context.env
+  artifacts: 
+    paths: 
+      - context.env
+
+build-api:
+  stage: build
+  tags:
+    - dev
+  script:
+    - export $(cat context.env | xargs)
+
+    - docker build sample-api-users -f sample-api-users/Dockerfile.prod -t ${API_PROD_IMAGE_NAME}
+    - docker build sample-api-users -f sample-api-users/Dockerfile.test --build-arg "BASE_IMAGE=$API_PROD_IMAGE_NAME" -t ${API_TEST_IMAGE_NAME}
+
+    - docker login -u $CI_REGISTRY_USER --password $CI_JOB_TOKEN $CI_REGISTRY
+
+    - docker push ${API_PROD_IMAGE_NAME}
+    - docker push ${API_TEST_IMAGE_NAME}
+  needs:
+    - job: preparation
+      artifacts: true
+
+build-client:
+  stage: build
+  tags:
+    - dev
+  script:
+    - export $(cat context.env | xargs)
+
+    - docker build sample-client-users -t ${CLIENT_PROD_IMAGE_NAME}
+    - docker build sample-client-users -f sample-client-users/Dockerfile.test -t ${CLIENT_TEST_IMAGE_NAME}
+
+    - docker login -u $CI_REGISTRY_USER --password $CI_JOB_TOKEN $CI_REGISTRY
+
+    - docker push ${CLIENT_PROD_IMAGE_NAME}
+    - docker push ${CLIENT_TEST_IMAGE_NAME}
+  needs:
+    - job: preparation
+      artifacts: true
+
+test-api:
+  stage: test
+  tags:
+    - dev
+  script:
+    - export $(cat context.env | xargs)
+
+    - export API_IMAGE=$API_TEST_IMAGE_NAME
+    - export CLIENT_IMAGE=dummy-image
+
+    - docker login -u $CI_REGISTRY_USER --password $CI_JOB_TOKEN $CI_REGISTRY
+
+    - docker compose -f docker-compose.yml --env-file .env.dev --profile api pull
+    - docker compose -f docker-compose.yml --env-file .env.dev --profile api up --abort-on-container-exit
+    - docker cp foodtruckers_api:/usr/src/app/coverage.xml .
+    - docker cp foodtruckers_api:/usr/src/app/report.xml .
+  artifacts:
+    when: always
+    paths:
+      - coverage.xml
+      - report.xml
+    reports:
+      junit: report.xml
+  needs:
+    - job: preparation
+    - job: build-api
+      artifacts: true
+
+test-integration:
+  stage: test
+  tags:
+    - dev
+  script:
+    - export $(cat context.env | xargs)
+    - docker login -u $CI_REGISTRY_USER --password $CI_JOB_TOKEN $CI_REGISTRY
+
+    - export API_IMAGE=$API_TEST_IMAGE_NAME
+    - export CLIENT_IMAGE=$CLIENT_TEST_IMAGE_NAME
+    - export TEST_TARGET=INTEGRATION 
+    - docker compose -f docker-compose.yml --env-file .env.dev --profile all pull
+    - docker compose -f docker-compose.yml --env-file .env.dev --profile all up --abort-on-container-exit
+  needs:
+    - job: test-api
+    - job: build-client
+    - job: preparation
+      artifacts: true  
+
+deliver-dockerhub:
+  stage: deliver
+  tags:
+    - dev
+  script:
+    - export $(cat context.env | xargs)
+
+    - docker login -u $CI_REGISTRY_USER --password $CI_JOB_TOKEN $CI_REGISTRY
+    - docker login -u $DOCKER_HUB_USER --password $DOCKER_HUB_PASS
+
+    - docker tag $API_PROD_IMAGE_NAME $DOCKER_HUB_API_IMAGE
+    - docker tag $CLIENT_PROD_IMAGE_NAME $DOCKER_HUB_CLIENT_IMAGE
+
+    - docker push $DOCKER_HUB_API_IMAGE
+    - docker push $DOCKER_HUB_CLIENT_IMAGE
+  needs:
+    - job: test-integration
+    - job: preparation
+      artifacts: true  
+
+deploy-prod:
+  stage: deploy
+  tags: 
+    - prod
+  script:
+    - export $(cat context.env | xargs)
+
+    - export API_IMAGE=$DOCKER_HUB_API_IMAGE
+    - export CLIENT_IMAGE=$DOCKER_HUB_CLIENT_IMAGE
+
+    - docker login -u $DOCKER_HUB_USER --password $DOCKER_HUB_PASS
+
+    - docker compose -f docker-compose.yml --profile all --env-file .env.prod stop
+    - docker compose -f docker-compose.yml --profile all --env-file .env.prod rm
+    - docker compose -f docker-compose.yml --profile all --env-file .env.prod pull
+    - docker compose -f docker-compose.yml --profile all --env-file .env.prod up -d
+  needs:
+    - job: deliver-dockerhub
+    - job: preparation
+      artifacts: true

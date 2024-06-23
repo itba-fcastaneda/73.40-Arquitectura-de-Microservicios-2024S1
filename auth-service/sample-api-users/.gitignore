@@ -1,0 +1,7 @@
+**/__pycache__
+**/Pipfile.lock
+.coverage
+.pytest_cache
+htmlcov
+pact-nginx-ssl/nginx-selfsigned.*
+src/tests/pacts

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+
+  api:
+    container_name: foodtruckers_api
+    image: ${API_IMAGE}
+    profiles:
+      - api
+      - all
+    ports:
+      - 5000:5000
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "-w1", "localhost", "5000"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 2s
+    environment:
+      - TEST_TARGET=${TEST_TARGET}
+      - PORT=5000
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@api-db/${POSTGRES_DB}
+      - APP_SETTINGS=${APP_SETTINGS}
+    depends_on:
+      api-db:
+        condition: service_healthy
+
+  api-db: 
+    container_name: foodtruckers_api_db
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    profiles:
+      - api
+      - all
+    healthcheck:
+      test: psql postgres --command "select 1" -U ${POSTGRES_USER}
+      interval: 2s
+      timeout: 10s
+      retries: 10
+      start_period: 2s
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+
+  client:
+    container_name: foodtruckers_client
+    image: ${CLIENT_IMAGE}
+    profiles:
+      - client
+      - all
+    restart: always
+    ports:
+      - 8080:80
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_HOST=api

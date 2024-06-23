@@ -1,0 +1,35 @@
+# pull official base image
+FROM python:3.11.2-slim-buster AS prod
+
+# set working directory
+WORKDIR /usr/src/app
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV FLASK_DEBUG 0
+ENV FLASK_ENV production
+ARG SECRET_KEY
+ENV SECRET_KEY $SECRET_KEY
+
+RUN apt-get update \
+  && apt-get -y install netcat gcc postgresql \
+  && apt-get clean \
+  && groupadd -g 999 python \
+  && useradd -r -u 999 -g python python \
+  && python -m venv /usr/src/app/.venv \
+  && chown -R python:python /usr/src/app 
+
+ENV PATH="/usr/src/app/.venv/bin:$PATH"
+ENV PIP_NO_CACHE_DIR=off
+USER 999
+
+COPY --chown=python:python requirements.txt requirements.txt
+RUN python -m pip install --upgrade pip && \
+    python -m pip install -r requirements.txt
+
+COPY --chown=python:python . .
+
+# run gunicorn
+CMD ["/usr/src/app/.venv/bin/gunicorn", "manage:app"]
+

@@ -1,0 +1,110 @@
+body {
+	margin: 0;
+	font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
+		"Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+		"Helvetica Neue", sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+code {
+	font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+		monospace;
+}
+
+.App {
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #eff2f7;
+}
+
+.Box {
+	border-radius: 20px;
+	box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.2);
+	padding: 50px;
+	gap: 30px;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.Small {
+	width: 250px;
+	height: 400px;
+}
+
+.Big {
+	width: 350px;
+	height: 600px;
+}
+
+.Section {
+	flex: 1;
+	width: 100%;
+	padding: 30px 50px;
+	gap: 30px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.Image {
+	width: 150px;
+}
+
+.Connected {
+	color: green;
+}
+
+.Disconnected {
+	color: red;
+}
+
+.FloatingStatus {
+	position: absolute;
+	top: 10px;
+	right: 50px;
+}
+
+.LogoutButton {
+	position: absolute;
+	bottom: 10px;
+	right: 50px;
+}
+
+.Card {
+	border-radius: 8px;
+	box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.2);
+	gap: 10px;
+	padding: 10px;
+	width: 100%;
+	background-color: white;
+	display: flex;
+	align-items: center;
+}
+
+.Items {
+	height: 100%;
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-direction: column;
+}
+
+.List {
+	width: 100%;
+	height: 500px;
+	gap: 30px;
+	padding: 20px;
+	overflow-y: auto;
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+}
